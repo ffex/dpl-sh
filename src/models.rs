@@ -5,6 +5,12 @@ pub enum Status {
     Main,
     ChooseLang,
 }
+
+pub enum Mode {
+    Normal,
+    Insert,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum LanguageCode {
     AR,

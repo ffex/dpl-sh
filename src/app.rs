@@ -4,14 +4,17 @@ use crossterm::event::{self, Event as CEvent, KeyCode, KeyEvent};
 use ratatui::DefaultTerminal;
 
 use crate::{
-    models::{Language, LanguageCode, Status},
+    models::{Language, LanguageCode, Mode, Status},
     ui::render_app,
 };
 
 pub struct App {
     pub status: Status,
+    pub mode: Mode,
     pub source_language: &'static Language,
     pub target_language: &'static Language,
+    pub source_text: String,
+    pub target_text: String,
     pub show_help: bool,
     pub exit: bool,
 }
@@ -20,8 +23,11 @@ impl App {
     pub fn new() -> Self {
         Self {
             status: Status::Main,
+            mode: Mode::Normal,
             source_language: Language::from_code(LanguageCode::IT),
             target_language: Language::from_code(LanguageCode::EN),
+            source_text: String::new(),
+            target_text: String::new(),
             show_help: false,
             exit: false,
         }
@@ -41,9 +47,19 @@ impl App {
 
     pub fn handle_key_event(&mut self, key_event: KeyEvent) {
         if key_event.kind == crossterm::event::KeyEventKind::Press {
-            if let KeyCode::Char('q') = key_event.code {
-                self.exit = true
-            };
+            match self.mode {
+                Mode::Normal => match key_event.code {
+                    KeyCode::Char('q') => self.exit = true,
+                    KeyCode::Char('h') => self.show_help = !self.show_help,
+                    KeyCode::Char('i') => self.mode = Mode::Insert,
+                    _ => {}
+                },
+                Mode::Insert => match key_event.code {
+                    KeyCode::Esc => self.mode = Mode::Normal,
+                    KeyCode::Char(c) => self.source_text.push(c),
+                    _ => {}
+                },
+            }
         };
     }
 }

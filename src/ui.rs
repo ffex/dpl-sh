@@ -6,8 +6,8 @@ use ratatui::{
     widgets::{Block, Borders, Clear, List, ListDirection, ListItem, Paragraph, Wrap},
 };
 
-use crate::app::App;
 use crate::models::Status;
+use crate::{app::App, models::Mode};
 
 pub fn render_app(frame: &mut Frame, app: &App) {
     // Initialize the layout
@@ -24,8 +24,12 @@ pub fn render_app(frame: &mut Frame, app: &App) {
     print_header(frame, chunks[0]);
     match app.status {
         Status::Main => {
-            print_textarea(frame, app, chunks[1]);
-            print_textarea(frame, app, chunks[2]);
+            if app.show_help {
+                print_textarea_with_help(frame, app, chunks[1], &app.source_language.name);
+            } else {
+                print_textarea(frame, app, chunks[1], &app.source_language.name);
+            }
+            print_textarea(frame, app, chunks[2], &app.target_language.name);
         }
         Status::ChooseLang => {
             print_popup(frame, chunks[1]);
@@ -47,7 +51,7 @@ pub fn print_header(frame: &mut Frame, area: Rect) {
 
     frame.render_widget(title, area);
 }
-pub fn print_textarea(frame: &mut Frame, app: &App, area: Rect) {
+pub fn print_textarea_with_help(frame: &mut Frame, app: &App, area: Rect, language: &str) {
     // Center Screen
     let chunks_center = Layout::default()
         .direction(Direction::Horizontal)
@@ -56,7 +60,7 @@ pub fn print_textarea(frame: &mut Frame, app: &App, area: Rect) {
 
     let textarea = vec![Line::default()];
     let textarea_block = Paragraph::new(textarea)
-        .block(Block::bordered().title("Language"))
+        .block(Block::bordered().title(language))
         .style(Style::default());
 
     let helparea = vec![Line::default()];
@@ -67,13 +71,28 @@ pub fn print_textarea(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(textarea_block, chunks_center[0]);
     frame.render_widget(helparea_block, chunks_center[1]);
 }
+
+pub fn print_textarea(frame: &mut Frame, app: &App, area: Rect, language: &str) {
+    let textarea = vec![Line::default()];
+    let textarea_block = Paragraph::new(textarea)
+        .block(Block::bordered().title(language))
+        .style(Style::default());
+
+    frame.render_widget(textarea_block, area);
+}
 pub fn print_footer(frame: &mut Frame, app: &App, area: Rect) {
     let current_navigation_text = vec![
-        Span::styled("Status Bar", Style::default().fg(Color::Green)),
+        Span::styled("STATUS BAR", Style::default().fg(Color::Green)),
         Span::styled(" | ", Style::default().fg(Color::White)),
     ];
 
-    let current_nav_key_hint_text = Span::styled("Another bar", Style::default().fg(Color::Blue));
+    let current_nav_key_hint_text = Span::styled(
+        match app.mode {
+            Mode::Insert => "- INSERT -",
+            _ => "- NORMAL -",
+        },
+        Style::default().fg(Color::Blue),
+    );
 
     let current_nav = Paragraph::new(Line::from(current_navigation_text))
         .block(Block::default().borders(Borders::ALL));
