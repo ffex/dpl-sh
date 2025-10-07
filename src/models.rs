@@ -1,6 +1,12 @@
 use std::fmt;
 use std::str::FromStr;
 
+pub const HELP_TEXT: &str = r#"
+ q: Quit
+ h: Toggle help
+ i: Enter insert mode
+
+"#;
 pub enum Status {
     Main,
     ChooseLang,

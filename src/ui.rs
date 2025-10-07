@@ -63,7 +63,7 @@ pub fn print_textarea_with_help(frame: &mut Frame, app: &App, area: Rect, langua
         .block(Block::bordered().title(language))
         .style(Style::default());
 
-    let helparea = vec![Line::default()];
+    let helparea = Text::from(crate::models::HELP_TEXT).lines.clone();
     let helparea_block = Paragraph::new(helparea)
         .block(Block::bordered().title("help"))
         .style(Style::default());
