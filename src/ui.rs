@@ -25,11 +25,31 @@ pub fn render_app(frame: &mut Frame, app: &App) {
     match app.status {
         Status::Main => {
             if app.show_help {
-                print_textarea_with_help(frame, app, chunks[1], &app.source_language.name);
+                print_textarea_with_help(
+                    frame,
+                    app,
+                    chunks[1],
+                    &app.source_language.name,
+                    &app.source_text,
+                );
             } else {
-                print_textarea(frame, app, chunks[1], &app.source_language.name);
+                print_textarea(
+                    frame,
+                    app,
+                    chunks[1],
+                    &app.source_language.name,
+                    &app.source_text,
+                    true,
+                );
             }
-            print_textarea(frame, app, chunks[2], &app.target_language.name);
+            print_textarea(
+                frame,
+                app,
+                chunks[2],
+                &app.target_language.name,
+                &app.target_text,
+                false,
+            );
         }
         Status::ChooseLang => {
             print_popup(frame, chunks[1]);
@@ -51,14 +71,20 @@ pub fn print_header(frame: &mut Frame, area: Rect) {
 
     frame.render_widget(title, area);
 }
-pub fn print_textarea_with_help(frame: &mut Frame, app: &App, area: Rect, language: &str) {
+pub fn print_textarea_with_help(
+    frame: &mut Frame,
+    app: &App,
+    area: Rect,
+    language: &str,
+    text: &str,
+) {
     // Center Screen
     let chunks_center = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(75), Constraint::Percentage(25)])
         .split(area);
 
-    let textarea = vec![Line::default()];
+    let textarea = text_with_cursor(app.cursor_row, app.cursor_col, &app.lines);
     let textarea_block = Paragraph::new(textarea)
         .block(Block::bordered().title(language))
         .style(Style::default());
@@ -72,13 +98,43 @@ pub fn print_textarea_with_help(frame: &mut Frame, app: &App, area: Rect, langua
     frame.render_widget(helparea_block, chunks_center[1]);
 }
 
-pub fn print_textarea(frame: &mut Frame, app: &App, area: Rect, language: &str) {
-    let textarea = vec![Line::default()];
+pub fn print_textarea(
+    frame: &mut Frame,
+    app: &App,
+    area: Rect,
+    language: &str,
+    text: &str,
+    user_textarea: bool,
+) {
+    let textarea = if user_textarea {
+        text_with_cursor(app.cursor_row, app.cursor_col, &app.lines)
+    } else {
+        Text::from(text).lines.clone()
+    };
     let textarea_block = Paragraph::new(textarea)
         .block(Block::bordered().title(language))
         .style(Style::default());
 
     frame.render_widget(textarea_block, area);
+}
+pub fn text_with_cursor(cursor_row: usize, cursor_col: usize, lines: &[String]) -> Vec<Line> {
+    let mut styled_lines = Vec::new();
+
+    for (row, line) in lines.iter().enumerate() {
+        let mut spans = Vec::new();
+        for (col, ch) in line.chars().enumerate() {
+            if row == cursor_row && col == cursor_col {
+                spans.push(Span::styled(
+                    ch.to_string(),
+                    Style::default().bg(Color::White).fg(Color::Black),
+                ));
+            } else {
+                spans.push(Span::raw(ch.to_string()));
+            }
+        }
+        styled_lines.push(Line::from(spans));
+    }
+    styled_lines
 }
 pub fn print_footer(frame: &mut Frame, app: &App, area: Rect) {
     let current_navigation_text = vec![
@@ -108,6 +164,7 @@ pub fn print_footer(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(current_nav, footer_chunks[0]);
     frame.render_widget(current_nav_key_hint, footer_chunks[1]);
 }
+
 pub fn print_popup(frame: &mut Frame, area: Rect) {
     let popup_area = centered_rect(40, 50, area);
 
