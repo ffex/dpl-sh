@@ -26,6 +26,8 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         let key = std::env::var("DEEPL_API_KEY").unwrap();
+        //TODO add the possibility to put the key with argument
+        // and other options?
         Self {
             status: Status::Main,
             mode: Mode::Normal,
@@ -62,7 +64,26 @@ impl App {
         let sentences = translated.translations;
         self.target_text.push_str(&sentences[0].text);
     }
-
+    fn copy_to_clipboard(&self) {
+        let mut clipboard = arboard::Clipboard::new().unwrap();
+        clipboard.set_text(self.target_text.clone()).unwrap();
+    }
+    fn paste_from_clipboard(&mut self) {
+        let mut clipboard = arboard::Clipboard::new().unwrap();
+        if let Ok(text) = clipboard.get_text() {
+            self.source_text.push_str(&text);
+            self.lines = vec![" ".into()];
+            // Build lines from source_text so each row becomes an element.
+            self.lines = if self.source_text.is_empty() {
+                vec!["".into()]
+            } else {
+                self.source_text
+                    .split('\n')
+                    .map(|s| s.to_string())
+                    .collect()
+            };
+        }
+    }
     async fn handle_key_event(&mut self, key_event: KeyEvent) {
         if key_event.kind == crossterm::event::KeyEventKind::Press {
             match self.mode {
@@ -70,14 +91,18 @@ impl App {
                     KeyCode::Char('q') => self.exit = true,
                     KeyCode::Char('h') => self.show_help = !self.show_help,
                     KeyCode::Char('i') => self.mode = Mode::Insert,
+                    KeyCode::Char('y') => self.copy_to_clipboard(),
+                    KeyCode::Char('p') => self.paste_from_clipboard(),
                     KeyCode::Char('t') => {
-                        //self.target_text.push_str("metto qualcosa");
                         self.traslate().await;
                     }
                     _ => {}
                 },
                 Mode::Insert => match key_event.code {
-                    KeyCode::Esc => self.mode = Mode::Normal,
+                    KeyCode::Esc => {
+                        self.mode = Mode::Normal;
+                        self.traslate().await;
+                    }
                     KeyCode::Char(c) => {
                         if self.lines.is_empty() {
                             self.lines.push(String::new());

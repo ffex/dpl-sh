@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+arboard = "3.6.1"
 crossterm = "0.29.0"
 deepl = "0.6.6"
 ratatui = "0.29.0"
