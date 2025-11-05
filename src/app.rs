@@ -1,7 +1,7 @@
-use std::{io::Error, time::Duration};
-
 use crossterm::event::{self, Event as CEvent, KeyCode, KeyEvent};
+use deepl::{DeepLApi, Lang};
 use ratatui::DefaultTerminal;
+use std::{io::Error, time::Duration};
 
 use crate::{
     models::{Language, LanguageCode, Mode, Status},
@@ -20,10 +20,12 @@ pub struct App {
     pub cursor_row: usize,
     pub cursor_col: usize,
     pub lines: Vec<String>,
+    pub deepl_api_key: String,
 }
 
 impl App {
     pub fn new() -> Self {
+        let key = std::env::var("DEEPL_API_KEY").unwrap();
         Self {
             status: Status::Main,
             mode: Mode::Normal,
@@ -36,28 +38,42 @@ impl App {
             cursor_row: 0,
             cursor_col: 0,
             lines: vec![" ".into()],
+            deepl_api_key: key,
         }
     }
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), Error> {
+    pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), Error> {
         while !self.exit {
-            // Your code here
             if event::poll(Duration::from_millis(16))?
                 && let CEvent::Key(key) = event::read()?
             {
-                self.handle_key_event(key);
+                self.handle_key_event(key).await;
             }
             terminal.draw(|frame| render_app(frame, self))?;
         }
         Ok(())
     }
+    async fn traslate(&mut self) {
+        let api = DeepLApi::with(&self.deepl_api_key).new();
+        let translated = api
+            .translate_text(self.source_text.clone(), Lang::EN)
+            .await
+            .unwrap();
 
-    pub fn handle_key_event(&mut self, key_event: KeyEvent) {
+        let sentences = translated.translations;
+        self.target_text.push_str(&sentences[0].text);
+    }
+
+    async fn handle_key_event(&mut self, key_event: KeyEvent) {
         if key_event.kind == crossterm::event::KeyEventKind::Press {
             match self.mode {
                 Mode::Normal => match key_event.code {
                     KeyCode::Char('q') => self.exit = true,
                     KeyCode::Char('h') => self.show_help = !self.show_help,
                     KeyCode::Char('i') => self.mode = Mode::Insert,
+                    KeyCode::Char('t') => {
+                        //self.target_text.push_str("metto qualcosa");
+                        self.traslate().await;
+                    }
                     _ => {}
                 },
                 Mode::Insert => match key_event.code {
@@ -113,7 +129,7 @@ impl App {
                     KeyCode::Down => {
                         if self.cursor_row < self.lines.len() - 1 {
                             self.cursor_row += 1;
-                        }//TODO add the passage in a empty lines
+                        } //TODO add the passage in a empty lines
                         let line_len = self.lines[self.cursor_row].len();
                         self.cursor_col = self.cursor_col.min(line_len.saturating_sub(1));
                     }
@@ -136,5 +152,11 @@ impl App {
                 },
             }
         };
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
     }
 }

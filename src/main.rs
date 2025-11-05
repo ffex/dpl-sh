@@ -5,7 +5,8 @@ mod app;
 mod models;
 mod ui;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.iter().any(|arg| arg == "--help") {
@@ -16,7 +17,7 @@ fn main() -> Result<()> {
     let mut terminal = ratatui::init();
     let mut app = App::new();
 
-    let app_result = app.run(&mut terminal);
+    let app_result = app.run(&mut terminal).await;
     ratatui::restore();
     app_result
 }
