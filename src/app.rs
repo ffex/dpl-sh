@@ -4,15 +4,15 @@ use ratatui::DefaultTerminal;
 use std::{io::Error, time::Duration};
 
 use crate::{
-    models::{Language, LanguageCode, Mode, Status},
+    models::{Mode, Status},
     ui::render_app,
 };
 
 pub struct App {
     pub status: Status,
     pub mode: Mode,
-    pub source_language: &'static Language,
-    pub target_language: &'static Language,
+    pub source_language: Lang,
+    pub target_language: Lang,
     pub source_text: String,
     pub target_text: String,
     pub show_help: bool,
@@ -21,6 +21,8 @@ pub struct App {
     pub cursor_col: usize,
     pub lines: Vec<String>,
     pub deepl_api_key: String,
+    pub source_language_selected: usize,
+    pub target_language_selected: usize,
 }
 
 impl App {
@@ -31,8 +33,8 @@ impl App {
         Self {
             status: Status::Main,
             mode: Mode::Normal,
-            source_language: Language::from_code(LanguageCode::IT),
-            target_language: Language::from_code(LanguageCode::EN),
+            source_language: Lang::IT,
+            target_language: Lang::EN,
             source_text: String::new(),
             target_text: String::new(),
             show_help: false,
@@ -41,6 +43,8 @@ impl App {
             cursor_col: 0,
             lines: vec![" ".into()],
             deepl_api_key: key,
+            source_language_selected: 15,
+            target_language_selected: 6,
         }
     }
     pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), Error> {
@@ -93,6 +97,7 @@ impl App {
                     KeyCode::Char('i') => self.mode = Mode::Insert,
                     KeyCode::Char('y') => self.copy_to_clipboard(),
                     KeyCode::Char('p') => self.paste_from_clipboard(),
+                    KeyCode::Char('s') => self.status = Status::ChooseLang,
                     KeyCode::Char('t') => {
                         self.traslate().await;
                     }
