@@ -3,13 +3,16 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListDirection, ListItem, Paragraph, Wrap},
+    widgets::{
+        Block, Borders, Clear, List, ListDirection, ListItem, ListState, Paragraph, StatefulWidget,
+        Wrap,
+    },
 };
 
 use crate::{all_languages, models::Status};
 use crate::{app::App, models::Mode};
 
-pub fn render_app(frame: &mut Frame, app: &App) {
+pub fn render_app(frame: &mut Frame, app: &mut App) {
     // Initialize the layout
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -52,7 +55,16 @@ pub fn render_app(frame: &mut Frame, app: &App) {
             );
         }
         Status::ChooseLang => {
-            render_language_popup(frame, app, chunks[1]);
+            let mut list_state;
+            let mut popup_title;
+            if app.is_source_language_selected {
+                list_state = &mut app.list_state_source;
+                popup_title = "Source Language";
+            } else {
+                list_state = &mut app.list_state_target;
+                popup_title = "Target Language";
+            };
+            render_language_popup(frame, list_state, chunks[1], popup_title);
             //print_popup(frame, chunks[1]);
         }
     }
@@ -206,15 +218,22 @@ fn centered_rect(perc_x: u16, perc_y: u16, area: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-fn render_language_popup(frame: &mut Frame, app: &App, area: Rect) {
+fn render_language_popup(frame: &mut Frame, list_state: &mut ListState, area: Rect, title: &str) {
     let bg_color = Color::Black;
     let main_color = Color::White;
     let ref_color = Color::White;
     let border_color = Color::White;
+    let block = Block::default()
+        .title(title)
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(border_color))
+        .style(Style::default().bg(bg_color));
+
     // Create popup area (center of screen)
     let popup_area = centered_rect(30, 30, area);
 
     // Clear the area
+    // TODO fix here
     frame.render_widget(ratatui::widgets::Clear, popup_area);
 
     // Create popup content
@@ -222,22 +241,18 @@ fn render_language_popup(frame: &mut Frame, app: &App, area: Rect) {
         .iter()
         .enumerate()
         .map(|(i, lang)| {
-            let style = if i == app.source_language_selected {
-                Style::default().fg(bg_color).bg(main_color)
-            } else {
-                Style::default().fg(ref_color)
-            };
-            ListItem::new(lang.to_string()).style(style)
+            let style = Style::default().fg(ref_color);
+            ListItem::new(format!("{} - {}", lang.to_string(), lang.description())).style(style)
         })
         .collect();
 
-    let list = List::new(items).block(
-        Block::default()
-            .title("Select Language")
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(border_color))
-            .style(Style::default().bg(bg_color)),
-    );
+    //let mut state = ListState::default();
+    //state.select_first();
 
-    frame.render_widget(list, popup_area);
+    let list = List::new(items)
+        .block(block)
+        .highlight_style(Style::default().fg(bg_color).bg(main_color));
+
+    frame.render_stateful_widget(list, popup_area, list_state);
+    //    frame.render_widget(list, popup_area);
 }
