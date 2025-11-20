@@ -71,7 +71,7 @@ impl App {
     async fn traslate(&mut self) {
         let api = DeepLApi::with(&self.deepl_api_key).new();
         let translated = api
-            .translate_text(self.source_text.clone(), Lang::EN)
+            .translate_text(self.source_text.clone(), self.target_language.clone())
             .await
             .unwrap();
 
