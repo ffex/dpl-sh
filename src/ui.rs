@@ -1,6 +1,6 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Position, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span, Text},
     widgets::{
@@ -64,7 +64,7 @@ pub fn render_app(frame: &mut Frame, app: &mut App) {
                 list_state = &mut app.list_state_target;
                 popup_title = "Target Language";
             };
-            render_language_popup(frame, list_state, chunks[1], popup_title);
+            render_language_popup(frame, list_state, chunks[1], popup_title, &app.search_text);
             //print_popup(frame, chunks[1]);
         }
     }
@@ -218,23 +218,37 @@ fn centered_rect(perc_x: u16, perc_y: u16, area: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-fn render_language_popup(frame: &mut Frame, list_state: &mut ListState, area: Rect, title: &str) {
+fn render_language_popup(
+    frame: &mut Frame,
+    list_state: &mut ListState,
+    area: Rect,
+    title: &str,
+    search_text: &str,
+) {
     let bg_color = Color::Black;
     let main_color = Color::White;
     let ref_color = Color::White;
     let border_color = Color::White;
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(3)]);
+
     let block = Block::default()
-        .title(title)
         .borders(Borders::ALL)
         .border_style(Style::default().fg(border_color))
         .style(Style::default().bg(bg_color));
 
+    let input_box = Paragraph::new(search_text)
+        .style(Style::default())
+        .block(block.clone().title("Search"));
     // Create popup area (center of screen)
     let popup_area = centered_rect(30, 30, area);
 
     // Clear the area
     // TODO fix here
     frame.render_widget(ratatui::widgets::Clear, popup_area);
+
+    let [search_area, list_area] = layout.areas(popup_area);
 
     // Create popup content
     let items: Vec<ListItem> = all_languages()
@@ -250,9 +264,16 @@ fn render_language_popup(frame: &mut Frame, list_state: &mut ListState, area: Re
     //state.select_first();
 
     let list = List::new(items)
-        .block(block)
+        .block(block.title(title))
         .highlight_style(Style::default().fg(bg_color).bg(main_color));
-
-    frame.render_stateful_widget(list, popup_area, list_state);
+    frame.render_widget(input_box, search_area);
+    frame.render_stateful_widget(list, list_area, list_state);
     //    frame.render_widget(list, popup_area);
+    frame.set_cursor_position(Position::new(
+        // Draw the cursor at the current position in the input field.
+        // This position is can be controlled via the left and right arrow key
+        search_area.x.saturating_add(search_text.len() as u16 + 1),
+        // Move one line down, from the border to the input line
+        search_area.y + 1,
+    ))
 }

@@ -25,6 +25,7 @@ pub struct App {
     pub list_state_source: ListState,
     pub list_state_target: ListState,
     pub is_source_language_selected: bool,
+    pub search_text: String,
 }
 
 impl App {
@@ -37,13 +38,13 @@ impl App {
         list_state_source.select(Some(15));
 
         let mut list_state_target = ListState::default();
-        list_state_target.select(Some(6)); //TODO put this like a constant? a default value?
+        list_state_target.select(Some(8)); //TODO put this like a constant? a default value?
 
         Self {
             status: Status::Main,
             mode: Mode::Normal,
             source_language: Lang::IT,
-            target_language: Lang::EN,
+            target_language: Lang::EN_US,
             source_text: String::new(),
             target_text: String::new(),
             show_help: false,
@@ -55,6 +56,7 @@ impl App {
             list_state_source,
             list_state_target,
             is_source_language_selected: false,
+            search_text: String::new(),
         }
     }
     pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), Error> {
@@ -72,6 +74,7 @@ impl App {
         let api = DeepLApi::with(&self.deepl_api_key).new();
         let translated = api
             .translate_text(self.source_text.clone(), self.target_language.clone())
+            .source_lang(self.source_language.clone())
             .await
             .unwrap();
 
@@ -107,19 +110,32 @@ impl App {
                     } else {
                         &mut self.list_state_target
                     };
-                    match key_event.code {
-                        KeyCode::Char('j') | KeyCode::Down => list_state.select_next(),
-                        KeyCode::Char('k') | KeyCode::Up => list_state.select_previous(),
-                        KeyCode::Enter => {
-                            self.status = Status::Main;
-                            let index = list_state.selected().unwrap();
-                            let language = all_languages().get(index).unwrap();
-                            if self.is_source_language_selected {
-                                self.source_language = language.clone();
-                            } else {
-                                self.target_language = language.clone();
+                    match self.mode {
+                        Mode::Normal => match key_event.code {
+                            KeyCode::Char('j') | KeyCode::Down => list_state.select_next(),
+                            KeyCode::Char('k') | KeyCode::Up => list_state.select_previous(),
+                            KeyCode::Char('/') => self.mode = Mode::Insert,
+                            KeyCode::Enter => {
+                                self.status = Status::Main;
+                                let index = list_state.selected().unwrap();
+                                let language = all_languages().get(index).unwrap();
+                                if self.is_source_language_selected {
+                                    self.source_language = language.clone();
+                                } else {
+                                    self.target_language = language.clone();
+                                }
                             }
-                        }
+                            _ => {}
+                        },
+                        Mode::Insert => match key_event.code {
+                            KeyCode::Esc | KeyCode::Enter => {
+                                self.mode = Mode::Normal;
+                            }
+                            KeyCode::Char(c) => {
+                                self.search_text.push(c);
+                            }
+                            _ => {}
+                        },
                         _ => {}
                     }
                 }
@@ -132,10 +148,12 @@ impl App {
                         KeyCode::Char('p') => self.paste_from_clipboard(),
                         KeyCode::Char('t') => {
                             self.status = Status::ChooseLang;
+                            self.search_text.clear();
                             self.is_source_language_selected = false;
                         }
                         KeyCode::Char('s') => {
                             self.status = Status::ChooseLang;
+                            self.search_text.clear();
                             self.is_source_language_selected = true;
                         }
                         KeyCode::Char('o') => {
