@@ -131,8 +131,19 @@ impl App {
                             KeyCode::Esc | KeyCode::Enter => {
                                 self.mode = Mode::Normal;
                             }
+                            KeyCode::Backspace => {
+                                self.search_text.pop();
+                            }
                             KeyCode::Char(c) => {
                                 self.search_text.push(c);
+                                if self.search_text.len() == 2 {
+                                    let index = all_languages().iter().position(|lang| {
+                                        lang.to_string().starts_with(&self.search_text)
+                                    });
+                                    if let Some(index) = index {
+                                        list_state.select(Some(index));
+                                    }
+                                }
                             }
                             _ => {}
                         },
