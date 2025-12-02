@@ -32,7 +32,11 @@ pub fn render_app(frame: &mut Frame, app: &mut App) {
                     frame,
                     app,
                     chunks[1],
-                    &app.source_language.description(),
+                    &format!(
+                        "{} ({})",
+                        &app.source_language.description(),
+                        &app.source_language.to_string()
+                    ),
                     &app.source_text,
                 );
             } else {
@@ -40,7 +44,11 @@ pub fn render_app(frame: &mut Frame, app: &mut App) {
                     frame,
                     app,
                     chunks[1],
-                    &app.source_language.description(),
+                    &format!(
+                        "{} ({})",
+                        &app.source_language.description(),
+                        &app.source_language.to_string()
+                    ),
                     &app.source_text,
                     true,
                 );
@@ -49,7 +57,11 @@ pub fn render_app(frame: &mut Frame, app: &mut App) {
                 frame,
                 app,
                 chunks[2],
-                &app.target_language.description(),
+                &format!(
+                    "{} ({})",
+                    &app.target_language.description(),
+                    &app.target_language.to_string()
+                ),
                 &app.target_text,
                 false,
             );
@@ -245,7 +257,7 @@ fn render_language_popup(
     let popup_area = centered_rect(30, 30, area);
 
     // Clear the area
-    // TODO fix here
+    // TODO fix here ( fa una cancellazione strana)
     frame.render_widget(ratatui::widgets::Clear, popup_area);
 
     let [search_area, list_area] = layout.areas(popup_area);

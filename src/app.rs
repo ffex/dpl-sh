@@ -102,6 +102,7 @@ impl App {
         }
     }
     async fn handle_key_event(&mut self, key_event: KeyEvent) {
+        //TODO organize code in methods
         if key_event.kind == crossterm::event::KeyEventKind::Press {
             match self.status {
                 Status::ChooseLang => {
@@ -110,43 +111,47 @@ impl App {
                     } else {
                         &mut self.list_state_target
                     };
-                    match self.mode {
-                        Mode::Normal => match key_event.code {
-                            KeyCode::Char('j') | KeyCode::Down => list_state.select_next(),
-                            KeyCode::Char('k') | KeyCode::Up => list_state.select_previous(),
-                            KeyCode::Char('/') => self.mode = Mode::Insert,
-                            KeyCode::Enter => {
-                                self.status = Status::Main;
-                                let index = list_state.selected().unwrap();
-                                let language = all_languages().get(index).unwrap();
-                                if self.is_source_language_selected {
-                                    self.source_language = language.clone();
-                                } else {
-                                    self.target_language = language.clone();
+                    match key_event.code {
+                        KeyCode::Down => list_state.select_next(),
+                        KeyCode::Up => list_state.select_previous(),
+                        KeyCode::Enter => {
+                            self.status = Status::Main;
+                            let index = list_state.selected().unwrap();
+                            let language = all_languages().get(index).unwrap();
+                            if self.is_source_language_selected {
+                                self.source_language = language.clone();
+                            } else {
+                                self.target_language = language.clone();
+                            }
+                        }
+                        KeyCode::Esc => {
+                            self.status = Status::Main;
+                        }
+                        KeyCode::Backspace => {
+                            self.search_text.pop();
+                        }
+                        KeyCode::Char(c) => {
+                            self.search_text.push(c);
+                            if self.search_text.len() == 2 {
+                                let index = all_languages().iter().position(|lang| {
+                                    lang.to_string()
+                                        .to_lowercase()
+                                        .starts_with(&self.search_text.to_lowercase())
+                                });
+                                if let Some(index) = index {
+                                    list_state.select(Some(index));
+                                }
+                            } else if self.search_text.len() > 2 {
+                                let index = all_languages().iter().position(|lang| {
+                                    lang.description()
+                                        .to_lowercase()
+                                        .starts_with(&self.search_text.to_lowercase())
+                                });
+                                if let Some(index) = index {
+                                    list_state.select(Some(index));
                                 }
                             }
-                            _ => {}
-                        },
-                        Mode::Insert => match key_event.code {
-                            KeyCode::Esc | KeyCode::Enter => {
-                                self.mode = Mode::Normal;
-                            }
-                            KeyCode::Backspace => {
-                                self.search_text.pop();
-                            }
-                            KeyCode::Char(c) => {
-                                self.search_text.push(c);
-                                if self.search_text.len() == 2 {
-                                    let index = all_languages().iter().position(|lang| {
-                                        lang.to_string().starts_with(&self.search_text)
-                                    });
-                                    if let Some(index) = index {
-                                        list_state.select(Some(index));
-                                    }
-                                }
-                            }
-                            _ => {}
-                        },
+                        }
                         _ => {}
                     }
                 }
