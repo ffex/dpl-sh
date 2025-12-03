@@ -26,6 +26,7 @@ pub struct App {
     pub list_state_target: ListState,
     pub is_source_language_selected: bool,
     pub search_text: String,
+    pub wait_choose_language: bool,
 }
 
 impl App {
@@ -57,6 +58,7 @@ impl App {
             list_state_target,
             is_source_language_selected: false,
             search_text: String::new(),
+            wait_choose_language: false,
         }
     }
     pub async fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<(), Error> {
@@ -156,27 +158,49 @@ impl App {
                     }
                 }
                 Status::Main => match self.mode {
-                    Mode::Normal => match key_event.code {
-                        KeyCode::Char('q') => self.exit = true,
-                        KeyCode::Char('h') => self.show_help = !self.show_help,
-                        KeyCode::Char('i') => self.mode = Mode::Insert,
-                        KeyCode::Char('y') => self.copy_to_clipboard(),
-                        KeyCode::Char('p') => self.paste_from_clipboard(),
-                        KeyCode::Char('t') => {
-                            self.status = Status::ChooseLang;
-                            self.search_text.clear();
-                            self.is_source_language_selected = false;
+                    Mode::Normal => {
+                        if self.wait_choose_language {
+                            match key_event.code {
+                                KeyCode::Char('t') => {
+                                    self.status = Status::ChooseLang;
+                                    self.search_text.clear();
+                                    self.is_source_language_selected = false;
+                                }
+                                KeyCode::Char('s') => {
+                                    self.status = Status::ChooseLang;
+                                    self.search_text.clear();
+                                    self.is_source_language_selected = true;
+                                }
+                                _ => {}
+                            }
+                            self.wait_choose_language = false;
+                        } else {
+                            match key_event.code {
+                                KeyCode::Char('q') => self.exit = true,
+                                KeyCode::Char('?') => self.show_help = !self.show_help,
+                                KeyCode::Char('i') => self.mode = Mode::Insert,
+                                KeyCode::Char('y') => self.copy_to_clipboard(),
+                                KeyCode::Char('p') => self.paste_from_clipboard(),
+                                KeyCode::Char('l') => self.wait_choose_language = true,
+                                KeyCode::Char('o') => {
+                                    self.source_text.clear();
+                                    self.target_text.clear();
+                                    self.lines = vec![" ".into()];
+                                    self.cursor_row = 0;
+                                    self.cursor_col = 0;
+                                }
+                                KeyCode::Char('s') => {
+                                    let lang_temp = self.source_language.clone();
+                                    self.source_language = self.target_language.clone();
+                                    self.target_language = lang_temp;
+                                }
+                                KeyCode::Char('t') | KeyCode::Enter => {
+                                    self.traslate().await;
+                                }
+                                _ => {}
+                            }
                         }
-                        KeyCode::Char('s') => {
-                            self.status = Status::ChooseLang;
-                            self.search_text.clear();
-                            self.is_source_language_selected = true;
-                        }
-                        KeyCode::Char('o') => {
-                            self.traslate().await;
-                        }
-                        _ => {}
-                    },
+                    }
                     Mode::Insert => match key_event.code {
                         KeyCode::Esc => {
                             self.mode = Mode::Normal;
