@@ -72,16 +72,22 @@ impl App {
         }
         Ok(())
     }
-    async fn traslate(&mut self) {
+    async fn traslate(&mut self) -> Option<()>{
+        self.target_text.clear();
+        if self.source_text.trim().is_empty() {
+            return None;
+        }
+        
         let api = DeepLApi::with(&self.deepl_api_key).new();
         let translated = api
             .translate_text(self.source_text.clone(), self.target_language.clone())
             .source_lang(self.source_language.clone())
             .await
             .unwrap();
-        self.target_text.clear();
+
         let sentences = translated.translations;
         self.target_text.push_str(&sentences[0].text);
+        Some(())
     }
     fn copy_to_clipboard(&self) {
         let mut clipboard = arboard::Clipboard::new().unwrap();
@@ -275,6 +281,7 @@ impl App {
                                     self.cursor_col = new_col_pos;
                                 }
                             }
+                            self.source_text = self.lines.join("\n");
                         }
                         _ => {}
                     },
