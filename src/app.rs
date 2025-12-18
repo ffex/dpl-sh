@@ -79,7 +79,7 @@ impl App {
             .source_lang(self.source_language.clone())
             .await
             .unwrap();
-
+        self.target_text.clear();
         let sentences = translated.translations;
         self.target_text.push_str(&sentences[0].text);
     }
